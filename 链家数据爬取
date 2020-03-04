@@ -1,0 +1,39 @@
+# 导入开发模块
+import requests
+from bs4 import BeautifulSoup
+
+
+# 定义空列表，用于创建所有的爬虫链接
+urls = []
+citys = ['baohuashangquan','biguiyuanfenghuangcheng','jurong1','jurongshiqu']
+#宝华商圈、碧桂园凤凰城、句容、句容市区
+# 基于for循环，构造完整的爬虫链接
+for i in citys:
+    url = 'https://zj.lianjia.com/ershoufang/%s/' %i       
+    for j in range(1,20): #爬取20页
+        urls.append(url+'pg{}/'.format(j))
+
+# 创建csv文件，用于后面的保存数据
+file = open('lianjia_zj.csv','w',encoding = 'utf-8')
+
+for url in urls: # 基于for循环，抓取出所有满足条件的标签和属性列表，存放在find_all中
+    headers = {'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50'} #伪装浏览器（FN+F12)刷新，随意点击
+    res = requests.get(url,headers=headers)
+    res = res.text.encode(res.encoding).decode('utf-8')
+    soup = BeautifulSoup(res, 'html.parser')
+    find_all = soup.find_all(name = 'div', attrs = {'class':'info clear'})
+
+    for i in list(range(len(find_all))): # 基于for循环，抓取出所需的各个字段信息
+        res2 = find_all[i]
+        title = res2.find_all('div',{'class':'title'})[0].text # 每套二手房的标语
+        houseInfo = res2.find_all('div',{'class':'houseInfo'})[0].text # 每套二手房的小区名称
+        positionInfo = [i.strip() for i in res2.find_all('div',{'class':'positionInfo'})[0].text.split('\n')]
+        region = positionInfo[0] # 每套二手房所属的区域 楼层
+
+		# 每套二手房的总价
+        price = find_all[i].find('div',{'class':'totalPrice'}).text
+		# 每套二手房的平方米售价
+        price_union = find_all[i].find('div',{'class':'unitPrice'}).text #截取：.strip()[:-3]
+        file.write(','.join((title,houseInfo,region,price,price_union))+'\n')
+# 关闭文件（否则数据不会写入到csv文件中）
+file.close()
