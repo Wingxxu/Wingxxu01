@@ -1,0 +1,47 @@
+#关联规则 https://blog.csdn.net/qq_36523839/article/details/83960195
+from odps import ODPS,options
+from mlxtend.preprocessing import TransactionEncoder 
+import pandas as pd
+import numpy as np
+o = ODPS('***', '***', project='eleme_analyst_dev', 
+         endpoint='http://service-corp.odps.aliyun-inc.com/api')
+
+
+#导入数据
+t13=o.get_table('eleme_analyst_dev.xy_commodity_detail')
+df13=t13.to_df()
+dt = df13.to_pandas()
+
+dt1 = dt.groupby(by='order_id').apply(lambda x: list(x.commodity_name)).values
+dt2 = dt1.tolist() #转换为list
+
+
+te = TransactionEncoder()   # 定义模型
+df_tf = te.fit_transform(dt2)
+#df_01 = dt2.astype('int')           # 将 True、False 转换为 0、1 # 官方给的其它方法
+#df_name = te.inverse_transform(dt2)     # 将编码值再次转化为原来的商品名
+dh = pd.DataFrame(df_tf,columns=te.columns_)
+
+
+#利用Apriori找出频繁项集
+from mlxtend.frequent_patterns import apriori
+frequent_itemsets = apriori(dh,min_support=0.01,use_colnames=True) #use_colnames=True表示使用元素名字，默认的False使用列名代表元素
+# frequent_itemsets = apriori(df,min_support=0.05)
+frequent_itemsets.sort_values(by='support',ascending=False,inplace=True)    # 频繁项集可以按支持度排序
+# print(frequent_itemsets[frequent_itemsets.itemsets.apply(lambda x: len(x)) >= 2])  # 选择长度 >=2 的频繁项集
+
+#关联规则
+from mlxtend.frequent_patterns import association_rules #导入关联规则包
+#计算关联规则
+association_rule = association_rules(frequent_itemsets,metric='confidence',min_threshold=0.3)   # metric可以有很多的度量选项，返回的表列名都可以作为参数
+association_rule.sort_values(by='confidence',ascending=False,inplace=True)    #关联规则可以按置信度排序
+dt1 = dt.groupby(by='order_id').apply(lambda x: list(x.commodity_name)).values
+dt2=dt1.tolist()
+
+
+
+te = TransactionEncoder()   # 定义模型
+df_tf = te.fit_transform(dt2)
+#df_01 = dt2.astype('int')           # 将 True、False 转换为 0、1 # 官方给的其它方法
+#df_name = te.inverse_transform(dt2)     # 将编码值再次转化为原来的商品名
+dh = pd.DataFrame(df_tf,columns=te.columns_)
