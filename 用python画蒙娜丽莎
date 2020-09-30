@@ -1,4 +1,5 @@
 #主要思路：读取图片每一个像素的色彩值，然后给 excel 里的每一个单元格填充上颜色。主要用到的是PIL、openpyxl这两个库
+#https://www.jianshu.com/p/5df604a01d8f
 from PIL import Image
 import openpyxl
 from openpyxl.styles import fills
